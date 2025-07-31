@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SimplePeer P2P Demo</title>
+  <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+    textarea { width: 100%; height: 100px; margin-bottom: 10px; }
+    input, button { padding: 8px; margin: 5px 0; width: 100%; }
+    .log { border: 1px solid #ccc; padding: 10px; height: 100px; overflow-y: auto; background: #f9f9f9; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>SimplePeer P2P Chat</h2>
+  <button onclick="start(true)">Start (Initiator)</button>
+  <button onclick="start(false)">Start (Receiver)</button>
+
+  <h3>Your Signal</h3>
+  <textarea id="mySignal" readonly></textarea>
+
+  <h3>Remote Signal</h3>
+  <textarea id="remoteSignal"></textarea>
+  <button onclick="connect()">Connect</button>
+
+  <h3>Message</h3>
+  <input type="text" id="message" placeholder="Type a message">
+  <button onclick="send()" disabled>Send</button>
+
+  <div class="log" id="log"></div>
+
+  <script>
+    let peer = null;
+
+    function log(msg) {
+      const logEl = document.getElementById('log');
+      logEl.innerHTML += msg + '<br>';
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function start(initiator) {
+      peer = new SimplePeer({ initiator, trickle: false });
+
+      peer.on('signal', data => {
+        document.getElementById('mySignal').value = JSON.stringify(data);
+        log('📡 Signal created');
+      });
+
+      peer.on('connect', () => {
+        log('🟢 P2P Connected');
+        document.querySelector('button[onclick="send()"]')?.removeAttribute('disabled');
+      });
+
+      peer.on('data', data => {
+        log('📥 Received: ' + data);
+      });
+
+      peer.on('error', err => {
+        log('❌ Error: ' + err.message);
+      });
+
+      peer.on('close', () => {
+        log('🔴 Peer connection closed');
+      });
+    }
+
+    function connect() {
+      const raw = document.getElementById('remoteSignal').value;
+      try {
+        const signal = JSON.parse(raw);
+        if (!peer || peer.destroyed) {
+          log("⚠️ Peer not ready or already destroyed.");
+          return;
+        }
+        peer.signal(signal);
+      } catch (err) {
+        log('❌ Invalid signal JSON.');
+      }
+    }
+
+    function send() {
+      if (peer && peer.connected) {
+        const msg = document.getElementById('message').value;
+        peer.send(msg);
+        log('📤 Sent: ' + msg);
+      } else {
+        log('⚠️ Peer not connected.');
+      }
+    }
+  </script>
+</body>
+</html>
