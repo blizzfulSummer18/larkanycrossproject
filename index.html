@@ -15,6 +15,7 @@
   <h2>SimplePeer P2P Chat</h2>
   <button onclick="start(true)">Start (Initiator)</button>
   <button onclick="start(false)">Start (Receiver)</button>
+  <button onclick="restart()">🔄 Restart</button>
 
   <h3>Your Signal</h3>
   <textarea id="mySignal" readonly></textarea>
@@ -39,7 +40,17 @@
     }
 
     function start(initiator) {
-      peer = new SimplePeer({ initiator, trickle: false });
+      peer = new SimplePeer({
+        initiator,
+        trickle: false,
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
+          ]
+        }
+      });
 
       peer.on('signal', data => {
         document.getElementById('mySignal').value = JSON.stringify(data);
@@ -61,6 +72,7 @@
 
       peer.on('close', () => {
         log('🔴 Peer connection closed');
+        document.querySelector('button[onclick="send()"]')?.setAttribute('disabled', 'true');
       });
     }
 
@@ -73,6 +85,7 @@
           return;
         }
         peer.signal(signal);
+        log('📩 Signal received');
       } catch (err) {
         log('❌ Invalid signal JSON.');
       }
@@ -81,11 +94,24 @@
     function send() {
       if (peer && peer.connected) {
         const msg = document.getElementById('message').value;
+        if (!msg.trim()) return;
         peer.send(msg);
         log('📤 Sent: ' + msg);
+        document.getElementById('message').value = '';
       } else {
         log('⚠️ Peer not connected.');
       }
+    }
+
+    function restart() {
+      if (peer) peer.destroy();
+      peer = null;
+      document.getElementById('mySignal').value = '';
+      document.getElementById('remoteSignal').value = '';
+      document.getElementById('message').value = '';
+      document.getElementById('log').innerHTML = '';
+      document.querySelector('button[onclick="send()"]')?.setAttribute('disabled', 'true');
+      log('🔄 Restarted');
     }
   </script>
 </body>
