@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>SimplePeer P2P Demo with Console Logs</title>
+  <title>SimplePeer P2P Demo</title>
   <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
@@ -12,13 +12,13 @@
   </style>
 </head>
 <body>
-  <h2>SimplePeer P2P Chat (with console logs)</h2>
+  <h2>SimplePeer P2P Chat</h2>
   <button onclick="start(true)">Start (Initiator)</button>
   <button onclick="start(false)">Start (Receiver)</button>
   <button onclick="restart()">🔄 Restart</button>
 
   <h3>Your Signal</h3>
-  <textarea id="mySignal" readonly onfocus="this.select()"></textarea>
+  <textarea id="mySignal" readonly></textarea>
 
   <h3>Remote Signal</h3>
   <textarea id="remoteSignal"></textarea>
@@ -32,16 +32,18 @@
 
   <script>
     let peer = null;
+    let connectionTimeout = null;
 
     function log(msg) {
       const logEl = document.getElementById('log');
       logEl.innerHTML += msg + '<br>';
       logEl.scrollTop = logEl.scrollHeight;
-      console.log(msg);  // Console output
+      console.log(msg);
     }
 
     function start(initiator) {
-      console.log('Starting peer. Initiator:', initiator);
+      if (peer) peer.destroy();
+
       peer = new SimplePeer({
         initiator,
         trickle: false,
@@ -54,55 +56,59 @@
         }
       });
 
+      // Set timeout to wait for connection
+      connectionTimeout = setTimeout(() => {
+        if (peer && !peer.connected) {
+          log('⏳ Timed out waiting for connection. Destroying peer...');
+          peer.destroy();
+        }
+      }, 60000); // 60 seconds
+
       peer.on('signal', data => {
-        const json = JSON.stringify(data);
-        document.getElementById('mySignal').value = json;
+        document.getElementById('mySignal').value = JSON.stringify(data);
         log('📡 Signal created');
-        console.log('Signal data:', json);
+        console.log('Signal data:', data);
       });
 
       peer.on('connect', () => {
+        clearTimeout(connectionTimeout);
         log('🟢 P2P Connected');
-        console.log('Peer connection established');
         document.querySelector('button[onclick="send()"]')?.removeAttribute('disabled');
       });
 
       peer.on('data', data => {
         log('📥 Received: ' + data);
-        console.log('Data received:', data.toString());
       });
 
       peer.on('error', err => {
+        clearTimeout(connectionTimeout);
         log('❌ Error: ' + err.message);
-        console.error('Peer error:', err);
+        console.log('Peer error:', err);
       });
 
       peer.on('close', () => {
+        clearTimeout(connectionTimeout);
         log('🔴 Peer connection closed');
-        console.warn('Peer connection closed');
         document.querySelector('button[onclick="send()"]')?.setAttribute('disabled', 'true');
       });
 
       peer._pc.oniceconnectionstatechange = () => {
-        console.log('ICE connection state:', peer._pc.iceConnectionState);
+        log('ICE connection state: ' + peer._pc.iceConnectionState);
       };
     }
 
     function connect() {
       const raw = document.getElementById('remoteSignal').value;
-      if (!peer) {
-        log("⚠️ You must click 'Start' first.");
-        return;
-      }
-
       try {
         const signal = JSON.parse(raw);
-        console.log('Connecting using remote signal:', signal);
+        if (!peer || peer.destroyed) {
+          log("⚠️ Peer not ready or already destroyed.");
+          return;
+        }
         peer.signal(signal);
         log('📩 Signal received');
       } catch (err) {
         log('❌ Invalid signal JSON.');
-        console.error('Invalid signal input:', err);
       }
     }
 
@@ -112,16 +118,15 @@
         if (!msg.trim()) return;
         peer.send(msg);
         log('📤 Sent: ' + msg);
-        console.log('Message sent:', msg);
         document.getElementById('message').value = '';
       } else {
         log('⚠️ Peer not connected.');
-        console.warn('Attempted to send but peer not connected');
       }
     }
 
     function restart() {
       if (peer) peer.destroy();
+      clearTimeout(connectionTimeout);
       peer = null;
       document.getElementById('mySignal').value = '';
       document.getElementById('remoteSignal').value = '';
@@ -129,13 +134,7 @@
       document.getElementById('log').innerHTML = '';
       document.querySelector('button[onclick="send()"]')?.setAttribute('disabled', 'true');
       log('🔄 Restarted');
-      console.log('Peer restarted');
     }
-
-    // Enable Enter key to send
-    document.getElementById('message').addEventListener('keypress', e => {
-      if (e.key === 'Enter') send();
-    });
   </script>
 </body>
 </html>
