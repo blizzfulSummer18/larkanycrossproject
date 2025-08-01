@@ -1,4 +1,4 @@
-name: Hourly Trigger Anycross
+name: Render Trigger
 
 on:
   schedule:
