@@ -19,5 +19,5 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$PAYLOAD"
         env:
-          ANYCROSS_URL: ${{ secrets.RENDER_URL }}
+          RENDER_URL: ${{ secrets.RENDER_URL }}
 
