@@ -1,23 +1,18 @@
-name: Render Trigger
+name: Ping Render App Every 10 Minutes
 
 on:
   schedule:
-    - cron: '*/10 * * * *'  # Runs every 10 minutes
-  workflow_dispatch:         # Optional: allows manual trigger via GitHub UI
+    - cron: '*/10 * * * *'  # Every 10 minutes
+  workflow_dispatch:        # Optional manual trigger
 
 jobs:
-  trigger-anycross:
+  ping-render:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Call Anycross webhook
+      - name: Wake up Render app
         run: |
-          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          PAYLOAD=$(jq -n --arg src "github-action" --arg time "$TIMESTAMP" '{source: $src, time: $time}')
-          echo "Sending payload: $PAYLOAD"
-          curl -X POST "$RENDER_URL" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD"
+          echo "Pinging $RENDER_URL to prevent sleep..."
+          curl -s -o /dev/null -w "HTTP status: %{http_code}\n" --max-time 10 "$RENDER_URL"
         env:
           RENDER_URL: ${{ secrets.RENDER_URL }}
-
