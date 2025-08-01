@@ -1,0 +1,22 @@
+name: Hourly Trigger Anycross
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Runs every hour at minute 0
+  workflow_dispatch:     # Optional: allows manual trigger via GitHub UI
+
+jobs:
+  trigger-anycross:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Call Anycross webhook
+        run: |
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          PAYLOAD=$(jq -n --arg src "github-action" --arg time "$TIMESTAMP" '{source: $src, time: $time}')
+          echo "Sending payload: $PAYLOAD"
+          curl -X POST "$ANYCROSS_URL" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD"
+        env:
+          ANYCROSS_URL: ${{ secrets.ANYCROSS_URL }}
