@@ -5,7 +5,7 @@ const axios = require('axios');
 const app = express();
 app.use(bodyParser.json());
 
-const FORWARD_URL = process.env.FORWARD_URL || 'https://open-sg.larksuite.com/anycross/trigger/callback/MDU2YjFhM2IzY2Y5MTEzNGRjOTM2YmYxNWFjMTY2NGI1';
+const FORWARD_URL = process.env.FORWARD_URL || '';
 
 app.post('/webhook', async (req, res) => {
   const body = req.body;
