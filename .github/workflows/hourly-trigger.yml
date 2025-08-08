@@ -1,8 +1,8 @@
 name: Hourly Trigger Anycross
 
 on:
-  schedule:
-    - cron: '0 * * * *'  # Runs every hour at minute 0
+  #schedule:
+  #  - cron: '0 * * * *'  # Runs every hour at minute 0
   workflow_dispatch:     # Optional: allows manual trigger via GitHub UI
 
 jobs:
